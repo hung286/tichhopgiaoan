@@ -92,10 +92,32 @@ function parseXml(xmlString) {
   }
   return doc;
 }
+async function ensureJSZip() {
+  if (window.JSZip) return window.JSZip;
+  const urls = [
+    "./assets/jszip.min.js",
+    "https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js",
+    "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"
+  ];
+  for (const src of urls) {
+    try {
+      await new Promise((resolve, reject) => {
+        const s = document.createElement("script");
+        s.src = src;
+        s.onload = () => window.JSZip ? resolve() : reject(new Error("No JSZip"));
+        s.onerror = () => reject(new Error("Load failed: " + src));
+        document.head.appendChild(s);
+      });
+      if (window.JSZip) return window.JSZip;
+    } catch {
+    }
+  }
+  throw new Error("Ch\u01B0a t\u1EA3i \u0111\u01B0\u1EE3c th\u01B0 vi\u1EC7n JSZip. Vui l\xF2ng ki\u1EC3m tra th\u01B0 m\u1EE5c assets/ ho\u1EB7c k\u1EBFt n\u1ED1i m\u1EA1ng.");
+}
 async function readDocxFile(file) {
   const buf = await file.arrayBuffer();
-  if (!window.JSZip) throw new Error("Ch\u01B0a t\u1EA3i \u0111\u01B0\u1EE3c th\u01B0 vi\u1EC7n JSZip.");
-  const zip = await window.JSZip.loadAsync(buf);
+  const JSZipLib = await ensureJSZip();
+  const zip = await JSZipLib.loadAsync(buf);
   const docFile = zip.file("word/document.xml");
   if (!docFile) throw new Error("File kh\xF4ng ph\u1EA3i v\u0103n b\u1EA3n Word .docx h\u1EE3p l\u1EC7.");
   const xmlString = await docFile.async("string");
@@ -240,7 +262,7 @@ function buildRunsForItem(doc, item, colorEnabled, templateRuns) {
   return runs;
 }
 async function generatePatchedDocx(docInfo, items, colorEnabled = true) {
-  if (!window.JSZip) throw new Error("Th\u01B0 vi\u1EC7n JSZip ch\u01B0a s\u1EB5n s\xE0ng.");
+  const JSZipLib = await ensureJSZip();
   const xmlDoc = parseXml(docInfo.xml);
   const bodyParas = getBodyParagraphs(xmlDoc);
   const findPara = (pId) => {
@@ -275,7 +297,7 @@ async function generatePatchedDocx(docInfo, items, colorEnabled = true) {
       insertedMap.set(item.a, newP);
     }
   }
-  const zip = await window.JSZip.loadAsync(docInfo.buf);
+  const zip = await JSZipLib.loadAsync(docInfo.buf);
   const newXml = serializeXml(xmlDoc, docInfo.xml);
   zip.file("word/document.xml", newXml, { createFolders: false });
   return await zip.generateAsync({
@@ -284,9 +306,9 @@ async function generatePatchedDocx(docInfo, items, colorEnabled = true) {
   });
 }
 async function readXlsxFile(file) {
-  if (!window.JSZip) throw new Error("Ch\u01B0a t\u1EA3i \u0111\u01B0\u1EE3c th\u01B0 vi\u1EC7n JSZip.");
+  const JSZipLib = await ensureJSZip();
   const buf = await file.arrayBuffer();
-  const zip = await window.JSZip.loadAsync(buf);
+  const zip = await JSZipLib.loadAsync(buf);
   const sharedStrings = [];
   const ssFile = zip.file("xl/sharedStrings.xml");
   if (ssFile) {
@@ -335,7 +357,7 @@ async function readXlsxFile(file) {
   return lines.join("\n");
 }
 async function generateNewLessonDocx(lessonData, colorEnabled = true) {
-  if (!window.JSZip) throw new Error("Th\u01B0 vi\u1EC7n JSZip ch\u01B0a s\u1EB5n s\xE0ng.");
+  const JSZipLib = await ensureJSZip();
   const esc = (str) => String(str || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   const makeRunXml = (text, { bold = false, italic = false, color = null, size = 26 } = {}) => {
     let rPr = `<w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman"/>`;
@@ -407,7 +429,7 @@ async function generateNewLessonDocx(lessonData, colorEnabled = true) {
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
 </Relationships>`;
-  const zip = new window.JSZip();
+  const zip = new JSZipLib();
   zip.file("[Content_Types].xml", contentTypesXml);
   zip.file("_rels/.rels", relsXml);
   zip.file("word/document.xml", documentXml);

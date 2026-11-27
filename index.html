@@ -15,9 +15,9 @@
     }
   </style>
 
-  <!-- JSZip & PDF.js -->
-  <script src="./assets/jszip.min.js"></script>
-  <script src="./assets/pdf.min.js"></script>
+  <!-- JSZip & PDF.js (with CDN fallback) -->
+  <script src="./assets/jszip.min.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js'"></script>
+  <script src="./assets/pdf.min.js" onerror="this.onerror=null;this.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'"></script>
   <script>
     if (window.pdfjsLib) {
       window.pdfjsLib.GlobalWorkerOptions.workerSrc = "./assets/pdf.worker.min.js";
