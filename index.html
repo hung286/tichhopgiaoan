@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tích Hợp Các Nội Dung Vào Giáo Án - MHEdu</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  
+  <style>
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+  </style>
+
+  <!-- JSZip & PDF.js -->
+  <script src="./assets/jszip.min.js"></script>
+  <script src="./assets/pdf.min.js"></script>
+  <script>
+    if (window.pdfjsLib) {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = "./assets/pdf.worker.min.js";
+    }
+  </script>
+
+  <!-- React 18 & ReactDOM 18 -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+</head>
+<body class="bg-slate-50 min-h-screen">
+
+  <!-- Standalone Top Nav -->
+  <header style="background: linear-gradient(135deg, #1e1b4b, #312e81); color: #fff; padding: 10px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.15); font-family: system-ui, -apple-system, sans-serif; position: sticky; top: 0; z-index: 99999; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <span style="font-size: 1.2rem;">✨</span>
+      <span style="font-weight: 800; font-size: 15px; letter-spacing: 0.5px; background: linear-gradient(90deg, #a78bfa, #38bdf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">TÍCH HỢP TỔNG HỢP GIÁO ÁN AI</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" style="color: #e2e8f0; text-decoration: none; font-size: 12px; font-weight: 600; background: rgba(255,255,255,0.12); padding: 6px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2);">
+        🔗 Lấy API Key
+      </a>
+      <button id="smartedu-api-key-btn" onclick="openKeyModal()" style="background: #e21b3c; color: #fff; border: none; border-radius: 8px; padding: 6px 14px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+        🔑 Đổi API Key
+      </button>
+    </div>
+  </header>
+
+  <!-- Key Config Modal -->
+  <div id="smartedu-key-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:100000; align-items:center; justify-content:center;">
+    <div style="background:#fff; color:#1e293b; padding:24px; border-radius:16px; max-width:480px; width:90%; box-shadow:0 20px 50px rgba(0,0,0,0.5); font-family:system-ui, sans-serif;">
+      <h3 style="margin:0 0 10px 0; font-size:18px; font-weight:800; color:#1e1b4b;">🔑 Cài đặt Google Gemini API Key</h3>
+      <p style="font-size:13px; color:#64748b; line-height:1.5; margin-bottom:10px;">
+        Hệ thống đã có sẵn key dự phòng. Nếu muốn tốc độ cao nhất và không giới hạn lượt tạo, thầy/cô có thể lấy API Key miễn phí từ Google AI Studio rồi dán vào đây:
+      </p>
+      <div style="margin-bottom:14px; padding:10px 12px; background:#f5f3ff; border:1px solid #ddd6fe; border-radius:10px; font-size:12px; color:#4c1d95;">
+        👉 Lấy API Key miễn phí tại:
+        <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" style="color:#6d28d9; font-weight:700; text-decoration:underline;">
+          https://aistudio.google.com/apikey
+        </a>
+        <div style="color:#64748b; margin-top:4px;">(Đăng nhập Google → bấm <b>Create API key</b> → sao chép và dán vào ô dưới)</div>
+      </div>
+      <input id="smartedu-key-input" type="password" placeholder="Dán Gemini API Key của bạn (AIzaSy...)" style="width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px; margin-bottom:16px;" />
+      <div style="display:flex; justify-content:flex-end; gap:8px;">
+        <button onclick="closeKeyModal()" style="padding:8px 16px; border:1px solid #cbd5e1; background:#f1f5f9; border-radius:8px; font-weight:600; cursor:pointer;">Đóng</button>
+        <button onclick="saveKeyModal()" style="padding:8px 16px; border:none; background:#7c4dff; color:#fff; border-radius:8px; font-weight:700; cursor:pointer;">Lưu Key</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Root App -->
+  <div id="root"></div>
+
+  <!-- Key modal helper scripts -->
+  <script>
+    function openKeyModal() {
+      document.getElementById('smartedu-key-modal').style.display = 'flex';
+      const cur = localStorage.getItem('smartedu_gemini_api_key') || '';
+      document.getElementById('smartedu-key-input').value = cur;
+    }
+    function closeKeyModal() {
+      document.getElementById('smartedu-key-modal').style.display = 'none';
+    }
+    function saveKeyModal() {
+      const val = document.getElementById('smartedu-key-input').value.trim();
+      if (val) {
+        localStorage.setItem('smartedu_gemini_api_key', val);
+        alert('Đã lưu API Key thành công! Các lượt tạo tiếp theo sẽ dùng key của bạn.');
+      } else {
+        localStorage.removeItem('smartedu_gemini_api_key');
+        alert('Đã xóa key cá nhân, chuyển về key dự phòng của hệ thống.');
+      }
+      closeKeyModal();
+    }
+  </script>
+
+  <!-- App logic bundle -->
+  <script type="module" src="./app.bundle.js"></script>
+
+</body>
+</html>
